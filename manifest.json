@@ -1,0 +1,13 @@
+{
+  "name": "chrome-extension-example",
+  "version": "1.0",
+  "minimum_chrome_version": "10.0",
+  "description": "chrome extension example",
+  "devtools_page": "index.html",
+  "background": { "scripts": ["background.js"] },
+  "permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "manifest_version": 2
+}
