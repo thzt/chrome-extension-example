@@ -1,3 +1,6 @@
+// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+// ---- ---- ---- ---- log库 
+
 // chrome extension中不能使用console.log
 // 所以，需要通过发送请求给后台脚本的方式来打印日志
 const log = (...args) => chrome.extension.sendRequest({
@@ -8,7 +11,15 @@ const log = (...args) => chrome.extension.sendRequest({
 const error = (...args) => chrome.extension.sendRequest({
   tabId: chrome.devtools.tabId,
   code: `console.error(...${JSON.stringify(args)});`,
-});;
+});
+
+const warn = (...args) => chrome.extension.sendRequest({
+  tabId: chrome.devtools.tabId,
+  code: `console.warn(...${JSON.stringify(args)});`,
+});
+
+// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+// ---- ---- ---- ---- 任务调度
 
 // 用于串行化处理promise
 // 尤其是前一个promise还没resolved，后一个promise就已经出现的时候
@@ -57,6 +68,20 @@ const PromiseExecutor = class {
 
 const executor = new PromiseExecutor;
 
+// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+// ---- ---- ---- ---- devtool extension
+
+chrome.devtools.panels.create('chrome-extension-example',
+  'icon.png',
+  'panel.html',
+  (...args) => {
+    // log(args);
+  }
+);
+
+// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+// ---- ---- ---- ---- http劫持
+
 // note: 由于PromiseExecutor无法处理异常，所以异步函数需要通过返回值的状态来表示异常
 const handleHttp = async args => {
   try {
@@ -104,6 +129,8 @@ executor.each(({ isSuccess, data, message }) => {
   }
 
   const { method, queryString, url, response } = data;
-  log(method, url, queryString);
+  warn(method, url, queryString);
   log(response);
 });
+
+// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
