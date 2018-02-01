@@ -57,6 +57,7 @@ const PromiseExecutor = class {
 
 const executor = new PromiseExecutor;
 
+// note: 由于PromiseExecutor无法处理异常，所以异步函数需要通过返回值的状态来表示异常
 const handleHttp = async args => {
   try {
     const [{
