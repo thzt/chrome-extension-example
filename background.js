@@ -98,15 +98,20 @@ const handleHttp = async args => {
   }
 };
 
-// 注册回调，每一个http请求响应后，都触发该回调
-chrome.devtools.network.onRequestFinished.addListener((...args) => executor.add(() => handleHttp(args)));
+// 通过注册channel的方式避免多个页面中的devtool触发多次
+chrome.runtime.onConnect.addListener(channel => {
 
-executor.each(({ isSuccess, data, message }) => {
-  if (!isSuccess) {
-    error(message);
+  // 约定channel的名字
+  if (channel.name !== 'EXAMPLE_CHANNEL') {
+    return;
   }
 
-  const { method, queryString, url, response } = data;
-  warn(method, url, queryString);
-  log(response);
+  // 注册回调，每一个http请求响应后，都触发该回调
+  chrome.devtools.network.onRequestFinished.addListener((...args) => executor.add(() => handleHttp(args)));
+
+  // 注册回调，用来获取每个请求的所有结果
+  executor.each(result => channel.postMessage(result));
 });
+
+// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+
