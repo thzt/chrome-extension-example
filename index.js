@@ -2,8 +2,13 @@
 // 所以，需要通过发送请求给后台脚本的方式来打印日志
 const log = (...args) => chrome.extension.sendRequest({
   tabId: chrome.devtools.tabId,
-  args,
+  code: `console.log(...${JSON.stringify(args)});`,
 });
+
+const error = (...args) => chrome.extension.sendRequest({
+  tabId: chrome.devtools.tabId,
+  code: `console.error(...${JSON.stringify(args)});`,
+});;
 
 // 用于串行化处理promise
 // 尤其是前一个promise还没resolved，后一个promise就已经出现的时候
@@ -62,14 +67,24 @@ const handleHttp = async args => {
       getContent,
     }] = args;
 
-    log(method, queryString, url);
-
     // 将callback转为await promise
     // warn: content在getContent回调函数中，而不是getContent的返回值
     const content = await new Promise((res, rej) => getContent(res));
-    log(content);
+
+    return {
+      isSuccess: true,
+      data: {
+        method,
+        queryString,
+        url,
+        response: content,
+      }
+    };
   } catch (err) {
-    log(err.stack || err.toString());
+    return {
+      isSuccess: false,
+      message: err.stack || err.toString(),
+    };
   }
 };
 
@@ -81,3 +96,13 @@ chrome.devtools.network.onRequestFinished.addListener(
         args => () => handleHttp(args)
       )(args))
 );
+
+executor.each(({ isSuccess, data, message }) => {
+  if (!isSuccess) {
+    error(message);
+  }
+
+  const { method, queryString, url, response } = data;
+  log(method, url, queryString);
+  log(response);
+});
