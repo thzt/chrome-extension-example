@@ -44,9 +44,9 @@ const sendAjax = {
 // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
 // ---- ---- ---- ---- channel
 
-// 和background脚本之间注册一个channel
-const channel = chrome.runtime.connect({
-    name: 'EXAMPLE_CHANNEL'
+// 与当前页面的DevTool Page之间建立一个channel
+const channel = chrome.runtime.connect(null, {
+    name: chrome.devtools.inspectedWindow.tabId.toString(),
 });
 
 // 监听channel消息
@@ -60,6 +60,9 @@ channel.onMessage.addListener(result => {
     const { method, queryString, url, response } = data;
     document.querySelector('#result').innerHTML += url + '<br>';
 });
+
+// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+// ---- ---- ---- ---- Panel页面中的事件
 
 // 点击按钮，模拟发起ajax请求
 document.querySelector('#button1').addEventListener('click', async () => {

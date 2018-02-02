@@ -3,16 +3,10 @@
   "version": "1.0",
   "minimum_chrome_version": "10.0",
   "description": "chrome extension example",
-  "devtools_page": "index.html",
-  "background": {
-    "scripts": [
-      "background.js"
-    ]
-  },
+  "devtools_page": "devtools.html",
   "permissions": [
     "http://*/*",
-    "https://*/*",
-    "tabs"
+    "https://*/*"
   ],
   "manifest_version": 2
 }

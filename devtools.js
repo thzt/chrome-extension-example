@@ -1,4 +1,20 @@
 // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+// ---- ---- ---- ---- Panel
+
+// 创建一个Panel
+chrome.devtools.panels.create(
+
+  // title
+  'chrome-extension-example',
+
+  // iconPath
+  null,
+
+  // pagePath
+  'panel.html'
+);
+
+// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
 // ---- ---- ---- ---- 任务调度
 
 // 用于串行化处理promise
@@ -49,21 +65,6 @@ const PromiseExecutor = class {
 const executor = new PromiseExecutor;
 
 // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-// ---- ---- ---- ---- log
-
-const log = (...args) => chrome.tabs.executeScript(null, {
-  code: `console.log(...${JSON.stringify(args)});`,
-});
-
-const warn = (...args) => chrome.tabs.executeScript(null, {
-  code: `console.warn(...${JSON.stringify(args)});`,
-});
-
-const error = (...args) => chrome.tabs.executeScript(null, {
-  code: `console.error(...${JSON.stringify(args)});`,
-});
-
-// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
 // ---- ---- ---- ---- http劫持
 
 // note: 由于PromiseExecutor无法处理异常，所以异步函数需要通过返回值的状态来表示异常
@@ -98,15 +99,15 @@ const handleHttp = async args => {
   }
 };
 
-// 通过注册channel的方式避免多个页面中的devtool触发多次
+// 注册一个channel用于和当前tab页的Panel进行通信
 chrome.runtime.onConnect.addListener(channel => {
 
-  // 约定channel的名字
-  if (channel.name !== 'EXAMPLE_CHANNEL') {
+  // 如果channel不是来源于当前tab页，就不使用它
+  if (channel.name !== chrome.devtools.inspectedWindow.tabId.toString()) {
     return;
   }
 
-  // 注册回调，每一个http请求响应后，都触发该回调
+  // 作用域中留下了当前tab页的Panel所建立的channel
   chrome.devtools.network.onRequestFinished.addListener((...args) => executor.add(() => handleHttp(args)));
 
   // 注册回调，用来获取每个请求的所有结果
@@ -114,4 +115,3 @@ chrome.runtime.onConnect.addListener(channel => {
 });
 
 // ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-
