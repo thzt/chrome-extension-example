@@ -1,76 +1,26 @@
-// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-// ---- ---- ---- ---- ajax
+// chrome devtools extension中不能使用console.log
+const log = (...args) => chrome.devtools.inspectedWindow.eval(`
+    console.log(...${JSON.stringify(args)});
+`);
 
-const sendAjax = {
-    post: async ({ data, url }) => {
-        const xhr = new XMLHttpRequest;
-        xhr.responseType = 'json';
-        xhr.open('POST', url);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.send(data);
+// 注册回调，每一个http请求响应后，都触发该回调
+chrome.devtools.network.onRequestFinished.addListener(async (...args) => {
+    try {
+        const [{
+            // 请求的类型，查询参数，以及url
+            request: { method, queryString, url },
 
-        const response = await new Promise((res, rej) => {
-            xhr.onreadystatechange = () => {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    res(xhr.response);
-                    return;
-                }
-            };
-        });
+            // 该方法可用于获取响应体
+            getContent,
+        }] = args;
 
-        return response;
-    },
-    get: async ({ data, url }) => {
-        const queryString = Object.keys(data).map(key => `${key}=${data[key]}`).join('&');
+        log(method, queryString, url);
 
-        const xhr = new XMLHttpRequest;
-        xhr.responseType = 'json';
-        xhr.open('GET', `${url}?${queryString}`);
-        xhr.send(null);
-
-        const response = await new Promise((res, rej) => {
-            xhr.onreadystatechange = () => {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    res(xhr.response);
-                    return;
-                }
-            };
-        });
-
-        return response;
+        // 将callback转为await promise
+        // warn: content在getContent回调函数中，而不是getContent的返回值
+        const content = await new Promise((res, rej) => getContent(res));
+        // log(content);
+    } catch (err) {
+        log(err.stack || err.toString());
     }
-};
-
-// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-// ---- ---- ---- ---- channel
-
-// 与当前页面的DevTool Page之间建立一个channel
-const channel = chrome.runtime.connect(null, {
-    name: chrome.devtools.inspectedWindow.tabId.toString(),
 });
-
-// 监听channel消息
-channel.onMessage.addListener(result => {
-    const { isSuccess, data, mssage } = result;
-    if (!isSuccess) {
-        document.querySelector('#error').innerHTML += mesage;
-        return;
-    }
-
-    const { method, queryString, url, response } = data;
-    document.querySelector('#result').innerHTML += url + '<br>';
-});
-
-// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-// ---- ---- ---- ---- Panel页面中的事件
-
-// 点击按钮，模拟发起ajax请求
-document.querySelector('#button1').addEventListener('click', async () => {
-    const urls = document.querySelector('#result').innerHTML.split('<br>');
-    alert(JSON.stringify(urls, null, 4));
-
-    // todo: 这里可以用sendAjax.get或者sendAjax.post发起ajax请求
-    // 从而将以上保存的http url存到服务器端
-});
-
-// ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
